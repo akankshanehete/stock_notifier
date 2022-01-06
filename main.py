@@ -1,40 +1,53 @@
 import requests
-import math
 import os
 import datetime
 from twilio.rest import Client
 
-# getting data from alphavantage stock API
+
 STOCK = "TSLA"
 COMPANY_NAME = "Tesla Inc"
 
-
-parameters = {
-    'apikey': '////////',
+# getting data from alphavantage stock API
+stock_parameters = {
+    'apikey': '///////////////',
     'function': 'TIME_SERIES_INTRADAY',
     'symbol': STOCK,
     'interval': '60min'
 }
-stock_response = requests.get(url='https://www.alphavantage.co/query', params=parameters)
+stock_response = requests.get(url='https://www.alphavantage.co/query', params=stock_parameters)
 stock_data = stock_response.json()['Time Series (60min)']
 
 # getting yesterdays and the day before yesterdays closing stock prices
+today = datetime.date.today()
 yesterday = datetime.date.today() - datetime.timedelta(1)
 day_before_yesterday = datetime.date.today() - datetime.timedelta(2)
-y_cl = stock_data[str(yesterday) + " 20:00:00"]['4. close']
-dby_cl = stock_data[str(day_before_yesterday) + " 20:00:00"]['4. close']
+y_cl = float(stock_data[str(yesterday) + " 20:00:00"]['4. close'])
+dby_cl = float(stock_data[str(day_before_yesterday) + " 20:00:00"]['4. close'])
 
+# getting data from news API
+news_parameters = {
+    'apiKey': '///////////////',
+    'q' : COMPANY_NAME,
+    'from': str(yesterday),
+    'to': str(today)
+}
+
+news_data = requests.get(url='https://newsapi.org/v2/everything', params=news_parameters).json()
+print(news_data)
+
+
+# function checks the percent change between 2 values
 def check_percent_change(initial_value, final_value):
     percent_chg = ((final_value - initial_value)/initial_value) * 100
-    return percent_chg
+    return int(percent_chg)
 
 print(y_cl, dby_cl)
+print(check_percent_change(dby_cl, y_cl))
 
-
-
-
-## STEP 1: Use https://www.alphavantage.co
-# When STOCK price increase/decreases by 5% between yesterday and the day before yesterday then print("Get News").
+# when stock price increases/decreases by 5% or more b/w yesterday and the day before yesterday,
+# news articles are fetched for that company
+if check_percent_change(dby_cl,y_cl) >= 5 and check_percent_change(dby_cl,y_cl) <= -5:
+    print("Get News!")
 
 ## STEP 2: Use https://newsapi.org
 # Instead of printing ("Get News"), actually get the first 3 news pieces for the COMPANY_NAME.
